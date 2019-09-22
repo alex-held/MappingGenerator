@@ -12,6 +12,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Editing;
 using Microsoft.CodeAnalysis.Formatting;
+using Microsoft.CodeAnalysis.Simplification;
 
 namespace OnBuildGenerator
 {
@@ -83,20 +84,24 @@ namespace OnBuildGenerator
                                     GenerateThrowNotSupportedException(context, syntaxGenerator, methodSymbol.Name)
                                 };
 
-                        var newMethodDeclaration = ((MethodDeclarationSyntax)syntaxGenerator.MethodDeclaration(
+                        return ((MethodDeclarationSyntax)syntaxGenerator.MethodDeclaration(
                             methodDeclaration.Identifier.Text,
                             parameters: methodDeclaration.ParameterList.Parameters,
                             accessibility: Accessibility.Public,
                             typeParameters: methodDeclaration.TypeParameterList?.Parameters.Select(xx => xx.Identifier.Text),
                             returnType: methodDeclaration.ReturnType
                         )).WithBody(SyntaxFactory.Block(statements));
-                        return Formatter.Format(newMethodDeclaration, workspace);
+                        
                     }
 
                     return x;
                 }));
             mappingClass = DecorateWithGeneratedCodeAttribute(syntaxGenerator, mappingClass);
-            results = results.Add(mappingClass);
+            results = results.Add(
+                mappingClass
+                    .WithAdditionalAnnotations(Simplifier.Annotation)
+                    .WithAdditionalAnnotations(Formatter.Annotation)
+                );
             var newRoot = context.ProcessingNode.Ancestors().Aggregate(results, WrapInAncestor);
             return Task.FromResult(new RichGenerationResult()
             {
