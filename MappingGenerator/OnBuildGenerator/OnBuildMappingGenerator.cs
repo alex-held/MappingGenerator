@@ -34,6 +34,7 @@ namespace OnBuildGenerator
 
     public class OnBuildMappingGenerator: IRichCodeGenerator
     {
+        private const string GeneratorName = "MappingGenerator.OnBuildMappingGenerator";
         private static readonly MappingImplementorEngine ImplementorEngine = new MappingImplementorEngine();
         private static readonly Lazy<string> GeneratorVersion = new  Lazy<string>(()=> Assembly.GetExecutingAssembly().GetName().Version.ToString());
         public OnBuildMappingGenerator(AttributeData attributeData)
@@ -79,7 +80,7 @@ namespace OnBuildGenerator
                         var statements = ImplementorEngine.CanProvideMappingImplementationFor(methodSymbol) ? ImplementorEngine.GenerateMappingStatements(methodSymbol, syntaxGenerator, context.SemanticModel) :
                                 new List<StatementSyntax>()
                                 {
-                                    (StatementSyntax)syntaxGenerator.ThrowStatement(syntaxGenerator.ObjectCreationExpression(context.SemanticModel.Compilation.GetTypeByMetadataName("System.Exception")))
+                                    GenerateThrowNotSupportedException(context, syntaxGenerator, methodSymbol.Name)
                                 };
 
                         var newMethodDeclaration = ((MethodDeclarationSyntax)syntaxGenerator.MethodDeclaration(
@@ -107,11 +108,20 @@ namespace OnBuildGenerator
             });
         }
 
+        private static StatementSyntax GenerateThrowNotSupportedException(TransformationContext context, SyntaxGenerator syntaxGenerator, string methodName)
+        {
+            var notImplementedExceptionType = context.SemanticModel.Compilation.GetTypeByMetadataName("System.NotSupportedException");
+            var createNotImplementedException = syntaxGenerator.ObjectCreationExpression(notImplementedExceptionType,
+                
+                syntaxGenerator.LiteralExpression($"'{methodName}' method signature is not supported by {GeneratorName}"));
+            return (StatementSyntax)syntaxGenerator.ThrowStatement(createNotImplementedException);
+        }
+
         private static ClassDeclarationSyntax DecorateWithGeneratedCodeAttribute(SyntaxGenerator syntaxGenerator,
             ClassDeclarationSyntax mappingClass)
         {
             var generatedCodeAttribute = syntaxGenerator.Attribute("System.CodeDom.Compiler.GeneratedCodeAttribute",
-                syntaxGenerator.LiteralExpression("MappingGenerator.OnBuildMappingGenerator"),
+                syntaxGenerator.LiteralExpression(GeneratorName),
                 syntaxGenerator.LiteralExpression(GeneratorVersion)
             );
             mappingClass = (ClassDeclarationSyntax) syntaxGenerator.AddAttributes(mappingClass, generatedCodeAttribute);

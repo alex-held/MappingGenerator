@@ -11,10 +11,9 @@ namespace OnBuildGenerator.Sample
         UserEntity MapFrom(UserDTO user);
         void Update(UserEntity entity, UserDTO dto);
         void Update(UserDTO dto, UserEntity entity);
+
+        void DoSomethingStrange();
     }
-
-
-   
 
     public class UserDTO
     {
