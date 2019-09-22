@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using CodeGeneration.Roslyn;
@@ -12,8 +12,6 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Editing;
 using Microsoft.CodeAnalysis.Formatting;
-using Microsoft.CodeAnalysis.Options;
-using Microsoft.CodeAnalysis.Simplification;
 
 namespace OnBuildGenerator
 {
@@ -37,7 +35,7 @@ namespace OnBuildGenerator
     public class OnBuildMappingGenerator: IRichCodeGenerator
     {
         private static readonly MappingImplementorEngine ImplementorEngine = new MappingImplementorEngine();
-
+        private static readonly Lazy<string> GeneratorVersion = new  Lazy<string>(()=> Assembly.GetExecutingAssembly().GetName().Version.ToString());
         public OnBuildMappingGenerator(AttributeData attributeData)
         {
         }
@@ -95,9 +93,8 @@ namespace OnBuildGenerator
                     }
 
                     return x;
-                })
-                );
-
+                }));
+            mappingClass = DecorateWithGeneratedCodeAttribute(syntaxGenerator, mappingClass);
             results = results.Add(mappingClass);
             var newRoot = context.ProcessingNode.Ancestors().Aggregate(results, WrapInAncestor);
             return Task.FromResult(new RichGenerationResult()
@@ -108,6 +105,17 @@ namespace OnBuildGenerator
                     SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System.Linq"))
                 })
             });
+        }
+
+        private static ClassDeclarationSyntax DecorateWithGeneratedCodeAttribute(SyntaxGenerator syntaxGenerator,
+            ClassDeclarationSyntax mappingClass)
+        {
+            var generatedCodeAttribute = syntaxGenerator.Attribute("System.CodeDom.Compiler.GeneratedCodeAttribute",
+                syntaxGenerator.LiteralExpression("MappingGenerator.OnBuildMappingGenerator"),
+                syntaxGenerator.LiteralExpression(GeneratorVersion)
+            );
+            mappingClass = (ClassDeclarationSyntax) syntaxGenerator.AddAttributes(mappingClass, generatedCodeAttribute);
+            return mappingClass;
         }
 
         private static SyntaxList<MemberDeclarationSyntax> WrapInAncestor(SyntaxList<MemberDeclarationSyntax> generatedMembers, SyntaxNode ancestor)
