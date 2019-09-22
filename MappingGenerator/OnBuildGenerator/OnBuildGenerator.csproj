@@ -2,7 +2,14 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Version>2.0.0</Version>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
+    <Version>5.0.0</Version>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>MappingGenerator.OnBuildGenerator</PackageId>
+    <Authors>Cezary Piątek</Authors>
+    <Product>MappingGenerator.OnBuildGeneratorOnBuildGenerator</Product>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -24,5 +31,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MappingGenerator\MappingGenerator\MappingGenerator.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="$(OutputPath)\*.*" Pack="true" PackagePath="tools/" Visible="false" />
+    <None Include="MappingGenerator.OnBuildGenerator.targets" Pack="true" PackagePath="build/" Visible="false" />
   </ItemGroup>
 </Project>
